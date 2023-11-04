@@ -60,6 +60,7 @@ async def next_boss_spawns_message(interaction: discord.Interaction = None):
 
     embed = discord.Embed(title="Boss Warning")
 
+
     # assemble a string with the next 4 boss spawns
     if pun_spawn_time > 0:
         pun_time = local_time + timedelta(seconds=pun_spawn_time)
@@ -77,11 +78,12 @@ async def next_boss_spawns_message(interaction: discord.Interaction = None):
         kodi_time = local_time + timedelta(seconds=kodi_spawn_time)
         embed.add_field(name="Kodiak", value=f"{kodi_time.strftime('%H:%M')} (In {round(kodi_spawn_time / 60)} Minutes)")
 
+
     # if there was a passed interaction, send the message as a followup. otherwise, send standalone message
     if interaction != None:
         await interaction.followup.send(embed=embed)
     else:
-        await channel.send(mbed=embed)
+        await channel.send(embed=embed)
 
 
 
@@ -89,7 +91,10 @@ async def warn_boss_spawn(time_until_ping: int, user_ids: list, boss_name: str):
     """
     Set up a timer to ping users before boss spawn
     """
-    await asyncio.sleep(time_until_ping)
+    wait_time = time_until_ping - 180
+    if wait_time < 0:
+        wait_time = 0
+    await asyncio.sleep(wait_time)
 
     # assemble a string to ping all the users
     pings = ""
@@ -98,7 +103,10 @@ async def warn_boss_spawn(time_until_ping: int, user_ids: list, boss_name: str):
     
     # send the message
     await channel.send(f"{pings}\n{boss_name} is spawning in 3 minutes")
-    await next_boss_spawns_message()
+
+    # make sure that we dont send the boss spawn message twice
+    if wait_time > 0:
+        await next_boss_spawns_message()
 
 
 
@@ -127,8 +135,10 @@ async def list_temporary_whitelist_command(interaction: discord.Integration, rou
             galle_spawn_time = 4200 - (round_length % 4200)
             kodi_spawn_time = 7200 - (round_length % 7200)
 
+
             # send a message with the next boss spawns. pass the interaction so that the message is sent as a followup
             await next_boss_spawns_message(interaction = interaction)
+
 
             # start timers to ping users before each boss spawns, if remind is true
             if remind:
@@ -137,12 +147,13 @@ async def list_temporary_whitelist_command(interaction: discord.Integration, rou
                 asyncio.ensure_future(warn_boss_spawn(time_until_ping=galle_spawn_time, user_ids=ids, boss_name="Galleon"))
                 asyncio.ensure_future(warn_boss_spawn(time_until_ping=kodi_spawn_time, user_ids=ids, boss_name="Kodiak"))
 
+
         except Exception as e:
             print(e)
             await interaction.followup.send("`An error occurred`", ephemeral=True)
 
 
-    # if they didnt pass the permission check        
+    # if they didnt pass the permission check to execute the command  
     else:
         await interaction.followup.send("You do not have permission to execute this command", ephemeral=True)
 
@@ -157,6 +168,7 @@ async def start_timer():
         kodi_spawn_time = kodi_spawn_time - 1
 
 
+# do this when the bot is connected and ready to recieve comamnds
 @bot.event
 async def on_ready():
 
