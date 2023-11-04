@@ -33,14 +33,14 @@ bot_intents = discord.Intents.default()
 bot_intents.members = True
 bot_intents.messages = True
 bot_intents.message_content = True
+bot_intents.guilds = True
 
 
 bot = discord.Client(intents=bot_intents)
 command_tree = discord.app_commands.CommandTree(bot)
 
-guild: discord.Guild = discord.Object(id=guild_id)
-channel: discord.TextChannel = bot.get_channel(channel_id)
-
+guild: discord.Guild = None
+channel: discord.TextChannel = None
 
 pun_spawn_time = -1
 deci_spawn_time = -1
@@ -49,7 +49,7 @@ kodi_spawn_time = -1
 
 
 
-async def next_boss_spawns_message():
+async def next_boss_spawns_message(interaction: discord.Interaction = None):
     """
     Sends a message with the next boss spawns that are still being tracked
     """
@@ -58,27 +58,30 @@ async def next_boss_spawns_message():
     # get the current time
     local_time = datetime.datetime.now()
 
-    pun_message = ""
-    deci_message = ""
-    galle_message = ""
-    koki_message = ""
+    embed = discord.Embed(title="Boss Warning")
 
     # assemble a string with the next 4 boss spawns
     if pun_spawn_time > 0:
-        pun_message = f"{local_time + timedelta(seconds=pun_spawn_time)} ({round(pun_spawn_time / 60)} Minutes)"
+        pun_time = local_time + timedelta(seconds=pun_spawn_time)
+        embed.add_field(name="Punisher", value=f"{pun_time.strftime('%H:%M')} (In {round(pun_spawn_time / 60)} Minutes)")
 
     if deci_spawn_time > 0:
-        deci_message = f"{local_time + timedelta(seconds=deci_spawn_time)} ({round(deci_spawn_time / 60)} Minutes)"
+        deci_time = local_time + timedelta(seconds=deci_spawn_time)
+        embed.add_field(name="X-0/Decimator", value=f"{deci_time.strftime('%H:%M')} (In {round(deci_spawn_time / 60)} Minutes)")
 
     if galle_spawn_time > 0:
-        galle_message = f"{local_time + timedelta(seconds=galle_spawn_time)} ({round(galle_spawn_time / 60)} Minutes)"
+        galle_time = local_time + timedelta(seconds=galle_spawn_time)
+        embed.add_field(name="Galleon", value=f"{galle_time.strftime('%H:%M')} (In {round(galle_spawn_time / 60)} Minutes)")
 
     if kodi_spawn_time > 0:
-        koki_message = f"{local_time + timedelta(seconds=kodi_spawn_time)} ({round(kodi_spawn_time / 60)} Minutes)"
+        kodi_time = local_time + timedelta(seconds=kodi_spawn_time)
+        embed.add_field(name="Kodiak", value=f"{kodi_time.strftime('%H:%M')} (In {round(kodi_spawn_time / 60)} Minutes)")
 
-    message = f"Next boss spawns: {pun_message}\n{deci_message}\n{galle_message}\n{koki_message}"
-
-    await channel.send(message)
+    # if there was a passed interaction, send the message as a followup. otherwise, send standalone message
+    if interaction != None:
+        await interaction.followup.send(embed=embed)
+    else:
+        await channel.send(mbed=embed)
 
 
 
@@ -106,14 +109,14 @@ async def list_temporary_whitelist_command(interaction: discord.Integration, rou
     await interaction.response.defer()
 
     # set to "if True:" to get rid of the permission check
-    if interaction.user.id == aero_id:
+    if interaction.user.id == int(aero_id):
         try:
 
             # get all users of the role
             ids = []
             for member in guild.members:
                 # test if the member has the ping role, if so, add them to the list
-                if member.get_role(ping_role_id) != None:
+                if member.get_role(int(ping_role_id)) != None:
                     ids.append(member.id)
 
 
@@ -124,8 +127,8 @@ async def list_temporary_whitelist_command(interaction: discord.Integration, rou
             galle_spawn_time = 4200 - (round_length % 4200)
             kodi_spawn_time = 7200 - (round_length % 7200)
 
-            # send a message with the next boss spawns
-            await next_boss_spawns_message()
+            # send a message with the next boss spawns. pass the interaction so that the message is sent as a followup
+            await next_boss_spawns_message(interaction = interaction)
 
             # start timers to ping users before each boss spawns, if remind is true
             if remind:
@@ -133,7 +136,6 @@ async def list_temporary_whitelist_command(interaction: discord.Integration, rou
                 asyncio.ensure_future(warn_boss_spawn(time_until_ping=deci_spawn_time, user_ids=ids, boss_name=r"X-0, 45% chance of Decimator"))
                 asyncio.ensure_future(warn_boss_spawn(time_until_ping=galle_spawn_time, user_ids=ids, boss_name="Galleon"))
                 asyncio.ensure_future(warn_boss_spawn(time_until_ping=kodi_spawn_time, user_ids=ids, boss_name="Kodiak"))
-
 
         except Exception as e:
             print(e)
@@ -158,7 +160,12 @@ async def start_timer():
 @bot.event
 async def on_ready():
 
+    global guild, channel
+    guild = bot.get_guild(int(guild_id))
+    channel = bot.get_channel(int(channel_id))
+
     await command_tree.sync(guild=guild)
+
     print("Bot is ready")
 
 
