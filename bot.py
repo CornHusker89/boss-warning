@@ -21,8 +21,8 @@ guild_id = os.getenv('GUILD_ID')
 channel_id = os.getenv('CHANNEL_ID')
 # role id for the role you want to ping when a boss spawns
 ping_role_id = os.getenv('PING_ROLE_ID')
-# aero's role id (for the perms)
-aero_role_id = os.getenv('AERO_ROLE_ID')
+# aero's user id (for the perms)
+aero_id = os.getenv('AERO_ID')
 
 
 
@@ -46,23 +46,6 @@ pun_spawn_time = -1
 deci_spawn_time = -1
 galle_spawn_time = -1
 kodi_spawn_time = -1
-
-
-
-async def warn_boss_spawn(time_until_ping: int, user_ids: list, boss_name: str):
-    """
-    Set up a timer to ping users before boss spawn
-    """
-    await asyncio.sleep(time_until_ping)
-
-    # assemble a string to ping all the users
-    pings = ""
-    for id in user_ids:
-        pings = pings + f"<@{id}> "
-    
-    # send the message
-    await channel.send(f"{pings}\n{boss_name} is spawning in 3 minutes")
-    await next_boss_spawns_message
 
 
 
@@ -99,12 +82,31 @@ async def next_boss_spawns_message():
 
 
 
+async def warn_boss_spawn(time_until_ping: int, user_ids: list, boss_name: str):
+    """
+    Set up a timer to ping users before boss spawn
+    """
+    await asyncio.sleep(time_until_ping)
+
+    # assemble a string to ping all the users
+    pings = ""
+    for id in user_ids:
+        pings = pings + f"<@{id}> "
+    
+    # send the message
+    await channel.send(f"{pings}\n{boss_name} is spawning in 3 minutes")
+    await next_boss_spawns_message()
+
+
+
+
 @command_tree.command(name = "boss-warn", description = "Gives info about next boss spawn, can ping just before spawn", guild=guild) 
 async def list_temporary_whitelist_command(interaction: discord.Integration, round_length: int, remind: bool = False):
     # tell discord that the bot recieved the command but is "thinking"
     await interaction.response.defer()
 
-    if interaction.user.id == aero_role_id:
+    # set to "if True:" to get rid of the permission check
+    if interaction.user.id == aero_id:
         try:
 
             # get all users of the role
@@ -128,12 +130,11 @@ async def list_temporary_whitelist_command(interaction: discord.Integration, rou
             # start timers to ping users before each boss spawns, if remind is true
             if remind:
                 asyncio.ensure_future(warn_boss_spawn(time_until_ping=pun_spawn_time, user_ids=ids, boss_name="Punisher"))
-                asyncio.ensure_future(warn_boss_spawn(time_until_ping=deci_spawn_time, user_ids=ids, boss_name="Decimator"))
+                asyncio.ensure_future(warn_boss_spawn(time_until_ping=deci_spawn_time, user_ids=ids, boss_name=r"X-0, 45% chance of Decimator"))
                 asyncio.ensure_future(warn_boss_spawn(time_until_ping=galle_spawn_time, user_ids=ids, boss_name="Galleon"))
                 asyncio.ensure_future(warn_boss_spawn(time_until_ping=kodi_spawn_time, user_ids=ids, boss_name="Kodiak"))
 
-            
-                
+
         except Exception as e:
             print(e)
             await interaction.followup.send("`An error occurred`", ephemeral=True)
