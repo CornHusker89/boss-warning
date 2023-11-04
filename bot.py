@@ -39,7 +39,7 @@ bot = discord.Client(intents=bot_intents)
 command_tree = discord.app_commands.CommandTree(bot)
 
 guild: discord.Guild = discord.Object(id=guild_id)
-channel: discord.TextChannel = bot.get_channel(id=channel_id)
+channel: discord.TextChannel = bot.get_channel(channel_id)
 
 
 pun_spawn_time = -1
@@ -155,7 +155,9 @@ async def start_timer():
         kodi_spawn_time = kodi_spawn_time - 1
 
 
+@bot.event
 async def on_ready():
+
     await command_tree.sync(guild=guild)
     print("Bot is ready")
 
