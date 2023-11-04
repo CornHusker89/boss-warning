@@ -112,7 +112,7 @@ async def warn_boss_spawn(time_until_ping: int, user_ids: list, boss_name: str):
 
 
 @command_tree.command(name = "boss-warn", description = "Gives info about next boss spawn, can ping just before spawn", guild=guild) 
-async def list_temporary_whitelist_command(interaction: discord.Integration, round_length: int, remind: bool = False):
+async def list_temporary_whitelist_command(interaction: discord.Integration, round_length: int, remind: bool):
     # tell discord that the bot recieved the command but is "thinking"
     await interaction.response.defer()
 
