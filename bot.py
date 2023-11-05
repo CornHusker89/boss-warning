@@ -41,6 +41,7 @@ command_tree = discord.app_commands.CommandTree(bot)
 
 guild: discord.Guild = None
 channel: discord.TextChannel = None
+ping_role: discord.Role = None
 
 pun_spawn_time = -1
 deci_spawn_time = -1
@@ -95,14 +96,9 @@ async def warn_boss_spawn(time_until_ping: int, user_ids: list, boss_name: str):
     if wait_time < 0:
         wait_time = 0
     await asyncio.sleep(wait_time)
-
-    # assemble a string to ping all the users
-    pings = ""
-    for id in user_ids:
-        pings = pings + f"<@{id}> "
     
     # send the message
-    await channel.send(f"{pings}\n{boss_name} is spawning in 3 minutes")
+    await channel.send(f"{ping_role.mention}\n{boss_name} is spawning in 3 minutes")
 
     # make sure that we dont send the boss spawn message twice
     if wait_time > 0:
@@ -120,14 +116,6 @@ async def list_temporary_whitelist_command(interaction: discord.Interaction, rou
     if interaction.user.id == int(aero_id):
         try:
 
-            # get all users of the role
-            ids = []
-            for member in guild.members:
-                # test if the member has the ping role, if so, add them to the list
-                if member.get_role(int(ping_role_id)) != None:
-                    ids.append(member.id)
-
-
             # calculate seconds until each boss spawns
             global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time
             pun_spawn_time = 1698 - (round_length % 1698)
@@ -142,10 +130,10 @@ async def list_temporary_whitelist_command(interaction: discord.Interaction, rou
 
             # start timers to ping users before each boss spawns, if remind is true
             if remind:
-                asyncio.ensure_future(warn_boss_spawn(time_until_ping=pun_spawn_time, user_ids=ids, boss_name="Punisher"))
-                asyncio.ensure_future(warn_boss_spawn(time_until_ping=deci_spawn_time, user_ids=ids, boss_name=r"X-0, 45% chance of Decimator"))
-                asyncio.ensure_future(warn_boss_spawn(time_until_ping=galle_spawn_time, user_ids=ids, boss_name="Galleon"))
-                asyncio.ensure_future(warn_boss_spawn(time_until_ping=kodi_spawn_time, user_ids=ids, boss_name="Kodiak"))
+                asyncio.ensure_future(warn_boss_spawn(time_until_ping=pun_spawn_time, boss_name="Punisher"))
+                asyncio.ensure_future(warn_boss_spawn(time_until_ping=deci_spawn_time, boss_name=r"X-0, 45% chance of Decimator"))
+                asyncio.ensure_future(warn_boss_spawn(time_until_ping=galle_spawn_time, boss_name="Galleon"))
+                asyncio.ensure_future(warn_boss_spawn(time_until_ping=kodi_spawn_time, boss_name="Kodiak"))
 
 
         except Exception as e:
@@ -172,9 +160,10 @@ async def start_timer():
 @bot.event
 async def on_ready():
 
-    global guild, channel
+    global guild, channel, ping_role
     guild = bot.get_guild(int(guild_id))
     channel = bot.get_channel(int(channel_id))
+    ping_role = guild.get_role(int(ping_role_id))
 
     await command_tree.sync(guild=guild)
 
