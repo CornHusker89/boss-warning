@@ -8,6 +8,9 @@ To use this script, you need to set up a Discord bot and obtain its token, as we
 - AERO_ID: the ID of the user who has permission to execute the bot commands
 
 Once you have set up the necessary variables, you can run the script to start the bot.
+The bot will automatically send a react-for-roles message. Anyone who reacts to this will be pinged, as further explained in /boss-warn
+
+To forcibly re-send the react-for-roles message, you can use /resend-message.
 
 
 
@@ -15,4 +18,6 @@ To request information about the next boss spawns, you can use the "/boss-warn" 
 - round_length: the length of the current game round in seconds
 - remind: a boolean value indicating whether to set up reminders for the next boss spawns
 
-If you set remind to True, the bot will automatically send reminders to the designated channel and role before each boss spawns.
+If you set remind to True, the bot will automatically send reminders to the designated channel and ping the designated role before each boss spawns.
+
+
