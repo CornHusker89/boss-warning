@@ -7,7 +7,8 @@ import asyncio
 import datetime
 from datetime import timedelta
 import json
-import time
+
+import traceback
 
 
 from dotenv import load_dotenv
@@ -291,12 +292,11 @@ try:
         asyncio.ensure_future(start_timer())
 
 
-    time.sleep(1)
-
     bot.run(bot_token)
 
 except Exception as e:
     print(e)
+    traceback.print_exc()
     input("Press enter to exit")
 
 
