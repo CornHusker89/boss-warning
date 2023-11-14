@@ -1,20 +1,22 @@
 
 
-
-import discord
-import os
-import asyncio
-import datetime
-from datetime import timedelta
-import json
-
 import traceback
 
-
-from dotenv import load_dotenv
-load_dotenv()
-
 try:
+    import discord
+    import os
+    import asyncio
+    import datetime
+    from datetime import timedelta
+    import json
+
+
+
+
+    from dotenv import load_dotenv
+    load_dotenv()
+
+
     # set to false if you want everyone to be able to use the commands
     require_command_permission = True
 
@@ -51,7 +53,9 @@ try:
     bot = discord.Client(intents=bot_intents)
     command_tree = discord.app_commands.CommandTree(bot)
 
+    guild_discord_object = discord.Object(id=int(guild_id))
     guild: discord.Guild = None
+    
     channel: discord.TextChannel = None
     ping_role: discord.Role = None
     react_message: discord.Message = None
@@ -122,7 +126,7 @@ try:
 
 
 
-    @command_tree.command(name = "boss-warn", description = "Gives info about next boss spawn, can ping just before spawn", guild=guild) 
+    @command_tree.command(name = "boss-warn", description = "Gives info about next boss spawn, can ping just before spawn", guild=guild_discord_object) 
     async def boss_warn(interaction: discord.Interaction, round_length: int, remind: bool):
         # tell discord that the bot recieved the command but is "thinking"
         await interaction.response.defer()
@@ -162,7 +166,7 @@ try:
 
 
 
-    @command_tree.command(name = "resend-message", description = "Resends the react-for-role message, deletes old one", guild=guild) 
+    @command_tree.command(name = "resend-message", description = "Resends the react-for-role message, deletes old one", guild=guild_discord_object) 
     async def resend_react_message(interaction: discord.Interaction):
 
         # tell discord that the bot recieved the command but is "thinking"
@@ -176,7 +180,7 @@ try:
                 # attempt to retrieve the react for roles message from the channel
                 try:
                     react_message = await channel.fetch_message(int(react_message_id))
-                    react_message.delete()
+                    await react_message.delete()
                 except:
                     pass
 
@@ -189,6 +193,8 @@ try:
                 # write the message id to the json file
                 with open('react_message_id.json', 'w') as file:
                     json.dump({"react_message_id": react_message_id}, file)
+
+                await interaction.followup.send("Message re-sent")
 
 
             except Exception as e:
@@ -270,7 +276,7 @@ try:
         channel = bot.get_channel(int(channel_id))
         ping_role = guild.get_role(int(ping_role_id))
         
-        commands = await command_tree.sync(guild=guild)
+        commands = await command_tree.sync(guild=guild_discord_object)
         print(commands)
         print("Bot is ready")
 
