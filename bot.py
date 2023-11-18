@@ -241,7 +241,7 @@ try:
         while True:
             await asyncio.sleep(1)
             # decrement the time until each boss spawns by 1 every second
-            global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time, remind_users_id_list, react_message, react_message_id
+            global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time, remind_users_id_list, react_message, react_message_id, persistent_react_message, persistent_react_message_id
 
             pun_spawn_time = pun_spawn_time - 1
             deci_spawn_time = deci_spawn_time - 1
@@ -275,6 +275,10 @@ try:
                     async for user in reaction_type.users():
                         found_users_ids.append(user.id)
 
+                for reaction_type in persistent_react_message.reactions:
+                    async for user in reaction_type.users():
+                        found_users_ids.append(user.id)
+
                 for user_id in found_users_ids:
                     if user_id not in remind_users_id_list:
                         # give the user the role
@@ -290,6 +294,8 @@ try:
                         print(f"Removed role from {user.name}")
 
                 remind_users_id_list = found_users_ids
+
+
 
 
     # do this when the bot is connected
@@ -327,13 +333,13 @@ try:
         except:
             print("Could not find the persistent react-for-roles message, making a new one")
 
-            embed = discord.Embed(title="React for Roles", description="React to this message to enable pinging you before a boss spawns")
+            embed = discord.Embed(title="React for Roles (Persistent)", description="React to this message to enable pinging you before a boss spawns")
             persistent_react_message = await persistent_message_channel.send(embed=embed)
             persistent_react_message_id = persistent_react_message.id
 
             # write the message id to the json file
             with open('react_message_id.json', 'w') as file:
-                json.dump({"react_message_id": react_message_id, "persistent_react_message_id": persistent_react_message}, file)
+                json.dump({"react_message_id": react_message_id, "persistent_react_message_id": persistent_react_message_id}, file)
 
         asyncio.ensure_future(start_timer())
 
