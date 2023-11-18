@@ -106,7 +106,6 @@ try:
             await channel.send(embed=embed)
 
 
-
     async def warn_boss_spawn(time_until_ping: int, boss_name: str):
         """
         Set up a timer to ping users before boss spawn
@@ -135,14 +134,14 @@ try:
         if interaction.user.id == int(aero_id) or not require_command_permission:
             try:
 
-                adjusted_time = round_length * 60 # convert seconds to minutes
+                round_length *= 60 # convert seconds to minutes
 
                 # calculate seconds until each boss spawns
                 global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time
-                pun_spawn_time = 1698 - (adjusted_time % 1698)
-                deci_spawn_time = 3600 - (adjusted_time % 3600)
-                galle_spawn_time = 4200 - (adjusted_time % 4200)
-                kodi_spawn_time = 7200 - (adjusted_time % 7200)
+                pun_spawn_time = 1698 - (round_length % 1698)
+                deci_spawn_time = 3600 - (round_length % 3600)
+                galle_spawn_time = 4200 - (round_length % 4200)
+                kodi_spawn_time = 7200 - (round_length % 7200)
 
 
                 # send a message with the next boss spawns. pass the interaction so that the message is sent as a followup
