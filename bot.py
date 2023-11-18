@@ -32,6 +32,8 @@ try:
     persistent_message_channel_id = os.getenv('PERSISTENT_MESSAGE_CHANNEL_ID')
     # role id for the role you want to ping when a boss spawns
     ping_role_id = os.getenv('PING_ROLE_ID')
+    # role id for the role you want to have permission to use commands
+    permission_role_id = os.getenv('PERMISSION_ROLE_ID')
     # aero's user id (for the perms)
     aero_id = os.getenv('AERO_ID')
 
@@ -135,6 +137,17 @@ try:
             await next_boss_spawns_message()
 
 
+    def test_user_perms(user: discord.User):
+        """
+        Test if a user has permission to execute commands
+        """
+        if user.id == int(aero_id) or not require_command_permission:
+            return True
+        else:
+            for role in user.roles:
+                if role.id == int(permission_role_id):
+                    return True
+            return False
 
 
     @command_tree.command(name = "boss-warn", description = "Gives info about next boss spawn, can ping just before spawn", guild=guild_discord_object) 
@@ -142,8 +155,7 @@ try:
         # tell discord that the bot recieved the command but is "thinking"
         await interaction.response.defer()
 
-        # set to "if True:" to get rid of the permission check
-        if interaction.user.id == int(aero_id) or not require_command_permission:
+        if test_user_perms(interaction.user):
             try:
 
                 round_length *= 60 # convert seconds to minutes
@@ -185,7 +197,7 @@ try:
         # tell discord that the bot recieved the command but is "thinking"
         await interaction.response.defer()
 
-        if interaction.user.id == int(aero_id) or not require_command_permission:
+        if test_user_perms(interaction.user):
             try:
 
                 global react_message, react_message_id
