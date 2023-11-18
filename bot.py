@@ -28,6 +28,8 @@ try:
     guild_id = os.getenv('GUILD_ID')
     # channel id for the channel you want the bot to send messages in
     channel_id = os.getenv('CHANNEL_ID')
+    # channel id for the channel you want the bot to persistent messages in
+    persistent_message_channel_id = os.getenv('PERSISTENT_MESSAGE_CHANNEL_ID')
     # role id for the role you want to ping when a boss spawns
     ping_role_id = os.getenv('PING_ROLE_ID')
     # aero's user id (for the perms)
@@ -36,7 +38,15 @@ try:
 
     # get the react for roles message from the json file
     with open('react_message_id.json') as file:
-        react_message_id = json.load(file)['react_message_id']
+        file_json: dict = json.load(file)
+        react_message_id = file_json['react_message_id']
+        persistent_react_message_id = file_json.get('persistent_react_message_id', None)
+
+        # ensure that if the persistent_react_message_id is nonexistent, it will be added to the json file
+        if persistent_react_message_id == None:
+            persistent_react_message_id = 1
+            with open('react_message_id.json', 'w') as file:
+                json.dump({"react_message_id": react_message_id, "persistent_react_message_id": persistent_react_message_id }, file)
 
 
     # These are high-level perms for the bot. I put in the ones i assumed you would need, remove any you don't need.
@@ -57,8 +67,10 @@ try:
     guild: discord.Guild = None
     
     channel: discord.TextChannel = None
+    persistent_message_channel: discord.TextChannel = None
     ping_role: discord.Role = None
     react_message: discord.Message = None
+    persistent_react_message: discord.Message = None
 
     pun_spawn_time = -1
     deci_spawn_time = -1
@@ -268,13 +280,14 @@ try:
                 remind_users_id_list = found_users_ids
 
 
-    # do this when the bot is connected and ready to recieve comamnds
+    # do this when the bot is connected
     @bot.event
     async def on_ready():
 
-        global guild, channel, ping_role, react_message, react_message_id
+        global guild, channel, ping_role, react_message, react_message_id, persistent_react_message, persistent_react_message_id
         guild = bot.get_guild(int(guild_id))
         channel = bot.get_channel(int(channel_id))
+        persistent_message_channel = bot.get_channel(int(persistent_message_channel_id))
         ping_role = guild.get_role(int(ping_role_id))
         
         commands = await command_tree.sync(guild=guild_discord_object)
@@ -294,7 +307,21 @@ try:
 
             # write the message id to the json file
             with open('react_message_id.json', 'w') as file:
-                json.dump({"react_message_id": react_message_id}, file)
+                json.dump({"react_message_id": react_message_id, "persistent_react_message_id": persistent_react_message}, file)
+
+        # do the same, but with the persistent message
+        try:
+            persistent_react_message = await persistent_message_channel.fetch_message(int(persistent_message_channel_id))
+        except:
+            print("Could not find the persistent react-for-roles message, making a new one")
+
+            embed = discord.Embed(title="React for Roles", description="React to this message to enable pinging you before a boss spawns")
+            persistent_react_message = await persistent_message_channel.send(embed=embed)
+            persistent_react_message_id = persistent_react_message.id
+
+            # write the message id to the json file
+            with open('react_message_id.json', 'w') as file:
+                json.dump({"react_message_id": react_message_id, "persistent_react_message_id": persistent_react_message}, file)
 
         asyncio.ensure_future(start_timer())
 
