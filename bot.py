@@ -351,7 +351,7 @@ try:
     @bot.event
     async def on_ready():
 
-        global guild, channel, ping_role, react_message, react_message_id, persistent_react_message, persistent_react_message_id
+        global guild, channel, ping_role, react_message, react_message_id, persistent_react_message, persistent_react_message_id, persistent_message_channel_id, react_message_channel_id
         guild = bot.get_guild(int(guild_id))
         channel = bot.get_channel(int(channel_id))
         persistent_message_channel = bot.get_channel(int(persistent_message_channel_id))
