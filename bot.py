@@ -20,7 +20,7 @@ try:
     # set to false if you want everyone to be able to use the commands
     require_command_permission = True
 
-
+    
 
     # you could also just replace os.getenv('BOT_TOKEN') with the actual token if you dont want to use a .env file
     bot_token = os.getenv('BOT_TOKEN')
@@ -78,6 +78,7 @@ try:
     
     channel: discord.TextChannel = None
     persistent_message_channel: discord.TextChannel = None
+    react_message_channel: discord.TextChannel = None
     ping_role: discord.Role = None
     react_message: discord.Message = None
     persistent_react_message: discord.Message = None
@@ -193,7 +194,7 @@ try:
 
                 if remind:
 
-                    global react_message, react_message_id, react_message_channel_id
+                    global react_message, react_message_id, react_message_channel_id, react_message_channel
 
                     if interaction.channel_id == int(channel_id) or (interaction.channel_id != int(persistent_message_channel_id) and interaction.channel_id != int(react_message_channel_id)):
 
@@ -214,6 +215,7 @@ try:
                         react_message_id = react_message.id
 
                         react_message_channel_id = interaction.channel_id
+                        react_message_channel = bot.get_channel(int(react_message_channel_id))
 
                         # write the message id to the json file
                         with open('react_message_id.json', 'w') as file:
@@ -240,7 +242,7 @@ try:
         if test_user_perms(interaction.user):
             try:
 
-                global react_message, react_message_id, react_message_channel_id
+                global react_message, react_message_id, react_message_channel_id, react_message_channel
 
                 # attempt to retrieve the react for roles message from the channel
                 try:
@@ -257,6 +259,7 @@ try:
                 react_message_id = react_message.id
 
                 react_message_channel_id = interaction.channel_id
+                react_message_channel = bot.get_channel(int(react_message_channel_id))
 
                 # write the message id to the json file
                 with open('react_message_id.json', 'w') as file:
@@ -284,7 +287,7 @@ try:
         while True:
             await asyncio.sleep(0.997) # attempt to account for the time it takes to run the code
             # decrement the time until each boss spawns by 1 every second
-            global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time, remind_users_id_list, react_message, react_message_id, persistent_react_message, persistent_react_message_id, react_message_channel_id
+            global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time, remind_users_id_list, react_message, react_message_id, persistent_react_message, persistent_react_message_id, react_message_channel_id, react_message_channel
 
             pun_spawn_time = pun_spawn_time - 1
             deci_spawn_time = deci_spawn_time - 1
@@ -307,9 +310,10 @@ try:
 
                 # make a new react for roles message
                 embed = discord.Embed(title="React for Roles", description="React to this message to enable pinging you before a boss spawns")
-                react_message = await react_message_channel_id.send(embed=embed)
+                react_message = await react_message_channel.send(embed=embed)
                 react_message_id = react_message.id
 
+                react_message_channel = bot.get_channel(int(react_message_channel_id))
 
                 # write the message id to the json file
                 with open('react_message_id.json', 'w') as file:
@@ -351,10 +355,11 @@ try:
     @bot.event
     async def on_ready():
 
-        global guild, channel, ping_role, react_message, react_message_id, persistent_react_message, persistent_react_message_id, persistent_message_channel_id, react_message_channel_id
+        global guild, channel, ping_role, react_message, react_message_id, persistent_react_message, persistent_react_message_id, persistent_message_channel_id, react_message_channel_id, react_message_channel
         guild = bot.get_guild(int(guild_id))
         channel = bot.get_channel(int(channel_id))
         persistent_message_channel = bot.get_channel(int(persistent_message_channel_id))
+        react_message_channel = bot.get_channel(int(react_message_channel_id))
         ping_role = guild.get_role(int(ping_role_id))
         
         commands = await command_tree.sync(guild=guild_discord_object)
@@ -369,7 +374,7 @@ try:
             print("Could not find react-for-roles message, making a new one")
 
             embed = discord.Embed(title="React for Roles", description="React to this message to enable pinging you before a boss spawns")
-            react_message = await react_message_channel_id.send(embed=embed)
+            react_message = await react_message_channel.send(embed=embed)
             react_message_id = react_message.id
 
             # write the message id to the json file
