@@ -199,10 +199,15 @@ try:
                     if interaction.channel_id == int(channel_id) or (interaction.channel_id != int(persistent_message_channel_id) and interaction.channel_id != int(react_message_channel_id)):
 
 
-
                         # attempt to retrieve the react for roles message from the channel
                         try:
                             react_message = await channel.fetch_message(int(react_message_id))
+
+                            # remove the react roles from those who reacted to the message
+                            for reaction_type in react_message.reactions:
+                                async for user in reaction_type.users():
+                                    await user.remove_roles(ping_role)
+
                             await react_message.delete()
                         except:
                             pass
