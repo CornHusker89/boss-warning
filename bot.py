@@ -209,8 +209,19 @@ try:
                                     await user.remove_roles(ping_role)
 
                             await react_message.delete()
+
                         except:
-                            pass
+                            try:
+                                react_message = await react_message_channel.fetch_message(int(react_message_id))
+
+                                # remove the react roles from those who reacted to the message
+                                for reaction_type in react_message.reactions:
+                                    async for user in reaction_type.users():
+                                        await user.remove_roles(ping_role)
+
+                                await react_message.delete()
+                            except:
+                                pass
 
 
                         # make a new react for roles message
@@ -254,7 +265,11 @@ try:
                     react_message = await channel.fetch_message(int(react_message_id))
                     await react_message.delete()
                 except:
-                    pass
+                    try:
+                        react_message = await react_message_channel.fetch_message(int(react_message_id))
+                        await react_message.delete()
+                    except:
+                        pass
 
 
                 # make a new react for roles message
@@ -300,7 +315,7 @@ try:
             kodi_spawn_time = kodi_spawn_time - 1
 
             timecount = timecount + 1
-            if timecount > 5:
+            if timecount > 15:
                 timecount = 0
 
 
@@ -308,21 +323,22 @@ try:
                 # attempt to retrieve the react for roles message from the channel
                 try:
                     react_message = await channel.fetch_message(int(react_message_id))
-                    await react_message.delete()
                 except:
-                    print("Could not find react-for-roles message, making a new one")
+                    try:
+                        react_message = await react_message_channel.fetch_message(int(react_message_id))
+                    except:
+                        print("Could not find react-for-roles message, making a new one")
 
+                        # make a new react for roles message
+                        embed = discord.Embed(title="React for Roles", description="React to this message to enable pinging you before a boss spawns")
+                        react_message = await react_message_channel.send(embed=embed)
+                        react_message_id = react_message.id
 
-                # make a new react for roles message
-                embed = discord.Embed(title="React for Roles", description="React to this message to enable pinging you before a boss spawns")
-                react_message = await react_message_channel.send(embed=embed)
-                react_message_id = react_message.id
+                        react_message_channel = bot.get_channel(int(react_message_channel_id))
 
-                react_message_channel = bot.get_channel(int(react_message_channel_id))
-
-                # write the message id to the json file
-                with open('react_message_id.json', 'w') as file:
-                    json.dump({"react_message_id": react_message_id, "persistent_react_message_id": persistent_react_message_id, "react_message_channel_id": react_message_channel_id }, file)
+                        # write the message id to the json file
+                        with open('react_message_id.json', 'w') as file:
+                            json.dump({"react_message_id": react_message_id, "persistent_react_message_id": persistent_react_message_id, "react_message_channel_id": react_message_channel_id }, file)
 
 
 
@@ -376,15 +392,18 @@ try:
         try:
             react_message = await channel.fetch_message(int(react_message_id))
         except:
-            print("Could not find react-for-roles message, making a new one")
+            try:
+                react_message = await react_message_channel.fetch_message(int(react_message_id))
+            except:
+                print("Could not find react-for-roles message, making a new one")
 
-            embed = discord.Embed(title="React for Roles", description="React to this message to enable pinging you before a boss spawns")
-            react_message = await react_message_channel.send(embed=embed)
-            react_message_id = react_message.id
+                embed = discord.Embed(title="React for Roles", description="React to this message to enable pinging you before a boss spawns")
+                react_message = await react_message_channel.send(embed=embed)
+                react_message_id = react_message.id
 
-            # write the message id to the json file
-            with open('react_message_id.json', 'w') as file:
-                json.dump({"react_message_id": react_message_id, "persistent_react_message_id": persistent_react_message_id, "react_message_channel_id": react_message_channel_id }, file)
+                # write the message id to the json file
+                with open('react_message_id.json', 'w') as file:
+                    json.dump({"react_message_id": react_message_id, "persistent_react_message_id": persistent_react_message_id, "react_message_channel_id": react_message_channel_id }, file)
 
         # do the same, but with the persistent message
         try:
