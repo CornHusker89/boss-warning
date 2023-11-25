@@ -1,7 +1,7 @@
 This script sets up a Discord bot that can track the spawn times of bosses in a game and send reminders to a designated channel and role before each boss spawns. The bot can also provide information about the next boss spawns upon request.
 
 Requirements:
-- discord.py must be installed
+- discord.py and python-dotenv must be installed
 
 To use this script, you need to set up a Discord bot and obtain its token, as well as the IDs for the selected Discord server, channel, and role you want to use. You also need to use the .env file with the following variables:
 - BOT_TOKEN: the token for your Discord bot
