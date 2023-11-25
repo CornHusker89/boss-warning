@@ -99,22 +99,22 @@ try:
         embed = discord.Embed(title="Boss Warning")
 
 
-        # assemble a string with the next 4 boss spawns
-        if pun_spawn_time > 0:
+        # assemble a string with the next boss spawns
+        if pun_spawn_time > 180:
             pun_time = local_time + timedelta(seconds=pun_spawn_time)
-            embed.add_field(name="Punisher", value=f"{pun_time.strftime('%H:%M')} (In {round(pun_spawn_time / 60)} Minutes)")
+            embed.add_field(name="Punisher", value=f"at {pun_time.strftime('%H:%M')} (In {round(pun_spawn_time / 60)} Minutes)")
 
-        if deci_spawn_time > 0:
+        if deci_spawn_time > 180:
             deci_time = local_time + timedelta(seconds=deci_spawn_time)
-            embed.add_field(name="X-0/Decimator", value=f"{deci_time.strftime('%H:%M')} (In {round(deci_spawn_time / 60)} Minutes)")
+            embed.add_field(name="X-0/Decimator", value=f"at {deci_time.strftime('%H:%M')} (In {round(deci_spawn_time / 60)} Minutes)")
 
-        if galle_spawn_time > 0:
+        if galle_spawn_time > 180:
             galle_time = local_time + timedelta(seconds=galle_spawn_time)
-            embed.add_field(name="Galleon", value=f"{galle_time.strftime('%H:%M')} (In {round(galle_spawn_time / 60)} Minutes)")
+            embed.add_field(name="Galleon", value=f"at {galle_time.strftime('%H:%M')} (In {round(galle_spawn_time / 60)} Minutes)")
 
-        if kodi_spawn_time > 0:
+        if kodi_spawn_time > 180:
             kodi_time = local_time + timedelta(seconds=kodi_spawn_time)
-            embed.add_field(name="Kodiak", value=f"{kodi_time.strftime('%H:%M')} (In {round(kodi_spawn_time / 60)} Minutes)")
+            embed.add_field(name="Kodiak", value=f"at {kodi_time.strftime('%H:%M')} (In {round(kodi_spawn_time / 60)} Minutes)")
 
         # if there was a passed interaction, send the message as a followup. otherwise, send standalone message
         if interaction != None:
@@ -123,7 +123,7 @@ try:
             await channel.send(embed=embed)
 
 
-    async def warn_boss_spawn(time_until_ping: int, boss_name: str, reminder_id: int):
+    async def warn_boss_spawn(time_until_ping: int, boss_name: str, reminder_id: int, send_message_channel: discord.TextChannel):
         """
         Set up a timer to ping users before boss spawn
         """
@@ -134,7 +134,7 @@ try:
         
         if reminder_id > cancel_reminder_id:
             # send the message
-            await channel.send(f"{ping_role.mention}\n{boss_name} is spawning in 3 minutes")
+            await send_message_channel.send(f"{ping_role.mention}\n{boss_name} is spawning in 3 minutes")
 
             # make sure that we dont send the boss spawn message twice
             if wait_time > 0:
@@ -154,7 +154,7 @@ try:
             return False
 
 
-    @command_tree.command(name = "boss-warn", description = "Gives info about next boss spawn, can ping just before spawn", guild=guild_discord_object) 
+    @command_tree.command(name = "boss-warn", description = "Gives info about next boss spawn, can ping just before spawn (round length in mins)", guild=guild_discord_object) 
     async def boss_warn(interaction: discord.Interaction, round_length: int, remind: bool):
         # tell discord that the bot recieved the command but is "thinking"
         await interaction.response.defer()
@@ -174,16 +174,6 @@ try:
 
                 # send a message with the next boss spawns. pass the interaction so that the message is sent as a followup
                 await next_boss_spawns_message(interaction = interaction)
-
-
-                # start timers to ping users before each boss spawns, if remind is true
-                if remind:
-                    global current_reminder_id
-                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=pun_spawn_time, boss_name="Punisher", reminder_id=current_reminder_id))
-                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=deci_spawn_time, boss_name=r"X-0, 45% chance of Decimator", reminder_id=current_reminder_id + 1))
-                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=galle_spawn_time, boss_name="Galleon", reminder_id=current_reminder_id + 2))
-                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=kodi_spawn_time, boss_name="Kodiak", reminder_id=current_reminder_id + 3))
-                    current_reminder_id += 4
 
 
                 # see if we need to resend any react messages
@@ -229,6 +219,19 @@ try:
                         json.dump({"react_message_id": react_message_id, "react_message_channel_id": react_message_channel_id }, file)
 
 
+                # start timers to ping users before each boss spawns, if remind is true
+                if remind:
+                    global current_reminder_id
+                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=pun_spawn_time, boss_name="Punisher", reminder_id=current_reminder_id, send_message_channel=interaction.channel))
+                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=deci_spawn_time, boss_name=r"X-0, 45% chance of Decimator", reminder_id=current_reminder_id + 1, send_message_channel=interaction.channel))
+                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=galle_spawn_time, boss_name="Galleon", reminder_id=current_reminder_id + 2, send_message_channel=interaction.channel))
+                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=kodi_spawn_time, boss_name="Kodiak", reminder_id=current_reminder_id + 3, send_message_channel=interaction.channel))
+                    current_reminder_id += 4
+
+
+
+
+
             except Exception as e:
                 print(e)
                 await interaction.followup.send("`An error occurred`", ephemeral=True)
@@ -250,8 +253,8 @@ try:
             try:
 
                 global cancel_reminder_id
-                cancel_reminder_id = current_reminder_id 
-                await interaction.followup.send("All reminders have been cancelled")
+                cancel_reminder_id = current_reminder_id - 1
+                await interaction.followup.send("All previous reminders have been cancelled.")
 
             except Exception as e:
                 print(e)
@@ -282,68 +285,46 @@ try:
             if timecount > 15:
                 timecount = 0
 
-
-
-                # attempt to retrieve the react for roles message from the channel
-                try:
-                    react_message = await channel.fetch_message(int(react_message_id))
-                except:
-                    try:
-                        react_message = await react_message_channel.fetch_message(int(react_message_id))
-                    except:
-                        print("Could not find react-for-roles message, making a new one")
-
-                        # make a new react for roles message
-                        embed = discord.Embed(title="React for Roles", description="React to this message to enable pinging you before a boss spawns")
-                        react_message = await react_message_channel.send(embed=embed)
-                        react_message_id = react_message.id
-
-                        react_message_channel = bot.get_channel(int(react_message_channel_id))
-
-                        # write the message id to the json file
-                        with open('react_message_id.json', 'w') as file:
-                            json.dump({"react_message_id": react_message_id, "react_message_channel_id": react_message_channel_id }, file)
-
-
-
                 # refresh the user list every 20 seconds
                 found_users_ids = []
 
-                for reaction_type in react_message.reactions:
-                    async for user in reaction_type.users():
-                        found_users_ids.append(user.id)
+                if react_message:
+                    for reaction_type in react_message.reactions:
+                        async for user in reaction_type.users():
+                            found_users_ids.append(user.id)
 
-                for user_id in found_users_ids:
-                    if user_id not in remind_users_id_list:
-                        # give the user the role
-                        user = guild.get_member(user_id)
-                        await user.add_roles(ping_role)
-                        print(f"Added role to {user.name}")
+                    for user_id in found_users_ids:
+                        if user_id not in remind_users_id_list:
+                            # give the user the role
+                            user = guild.get_member(user_id)
+                            await user.add_roles(ping_role)
+                            print(f"Added role to {user.name}")
 
-                for user_id in remind_users_id_list:
-                    if user_id not in found_users_ids:
-                        # remove the role from the user
-                        user = guild.get_member(user_id)
-                        await user.remove_roles(ping_role)
-                        print(f"Removed role from {user.name}")
+                    for user_id in remind_users_id_list:
+                        if user_id not in found_users_ids:
+                            # remove the role from the user
+                            user = guild.get_member(user_id)
+                            await user.remove_roles(ping_role)
+                            print(f"Removed role from {user.name}")
 
-                remind_users_id_list = found_users_ids
-
-
+                    remind_users_id_list = found_users_ids
 
 
-    # do this when the bot is connected
+
+    # do this when the bot is connected to discord
     @bot.event
     async def on_ready():
 
         global guild, channel, ping_role, react_message, react_message_id, react_message_channel_id, react_message_channel
         guild = bot.get_guild(int(guild_id))
         channel = bot.get_channel(int(channel_id))
+
+        if react_message_channel_id == 1:
+            react_message_channel_id = channel_id
         react_message_channel = bot.get_channel(int(react_message_channel_id))
         ping_role = guild.get_role(int(ping_role_id))
         
         commands = await command_tree.sync(guild=guild_discord_object)
-        print(commands)
         print("Bot is ready")
 
         asyncio.ensure_future(start_timer())
