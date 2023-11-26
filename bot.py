@@ -292,7 +292,7 @@ try:
         """
         timecount = 0
         while True:
-            await asyncio.sleep(0.997) # attempt to account for the time it takes to run the code
+            await asyncio.sleep(0.99) # attempt to account for the time it takes to run the code
             # decrement the time until each boss spawns by 1 every second
             global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time, remind_users_id_list, react_message, react_message_id, react_message_channel_id, react_message_channel
 
@@ -302,32 +302,51 @@ try:
             kodi_spawn_time = kodi_spawn_time - 1
 
             timecount = timecount + 1
-            if timecount > 15:
+            if timecount > 5:
                 timecount = 0
 
-                # refresh the user list every 20 seconds
-                found_users_ids = []
+                # attempt to retrieve the react for roles message from the channel
+                try:
+                    react_message = await channel.fetch_message(int(react_message_id))
+                except:
+                    try:
+                        react_message = await react_message_channel.fetch_message(int(react_message_id))()
+                    except:
+                        pass
 
-                if react_message:
-                    for reaction_type in react_message.reactions:
-                        async for user in reaction_type.users():
-                            found_users_ids.append(user.id)
+                try:
+                    # refresh the user list every 20 seconds
+                    found_users_ids = []
 
-                    for user_id in found_users_ids:
-                        if user_id not in remind_users_id_list:
-                            # give the user the role
-                            user = guild.get_member(user_id)
-                            await user.add_roles(ping_role)
-                            print(f"Added role to {user.name}")
+                    if react_message:
+                        print("Refreshing user list")
+                        for reaction_type in react_message.reactions:
+                            async for user in reaction_type.users():
+                                found_users_ids.append(user.id)
 
-                    for user_id in remind_users_id_list:
-                        if user_id not in found_users_ids:
-                            # remove the role from the user
-                            user = guild.get_member(user_id)
-                            await user.remove_roles(ping_role)
-                            print(f"Removed role from {user.name}")
+                        print(found_users_ids)
 
-                    remind_users_id_list = found_users_ids
+                        for user_id in found_users_ids:
+                            if user_id not in remind_users_id_list:
+                                # give the user the role
+                                user = guild.get_member(user_id)
+                                await user.add_roles(ping_role)
+                                print(f"Added role to {user.name}")
+
+                        for user_id in remind_users_id_list:
+                            if user_id not in found_users_ids:
+                                # remove the role from the user
+                                user = guild.get_member(user_id)
+                                await user.remove_roles(ping_role)
+                                print(f"Removed role from {user.name}")
+
+                        remind_users_id_list = found_users_ids
+
+                    else:
+                        print(react_message)
+
+                except Exception as e:
+                    traceback.print_exc()
 
 
 
@@ -348,6 +367,15 @@ try:
         print("Bot is ready")
 
         asyncio.ensure_future(start_timer())
+
+        try:
+            react_message = await channel.fetch_message(int(react_message_id))
+        except:
+            try:
+                react_message = await react_message_channel.fetch_message(int(react_message_id))()
+            except:
+                pass
+    
 
     bot.run(bot_token)
 
