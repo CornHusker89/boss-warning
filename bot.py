@@ -87,7 +87,7 @@ try:
 
 
 
-    async def next_boss_spawns_message(interaction: discord.Interaction = None):
+    async def next_boss_spawns_message(interaction: discord.Interaction = None, send_message_channel: discord.TextChannel = None):
         """
         Sends a message with the next boss spawns that are still being tracked
         """
@@ -119,6 +119,8 @@ try:
         # if there was a passed interaction, send the message as a followup. otherwise, send standalone message
         if interaction != None:
             await interaction.followup.send(embed=embed)
+        elif channel != None:
+            await send_message_channel.send(embed=embed)
         else:
             await channel.send(embed=embed)
 
@@ -139,7 +141,7 @@ try:
 
             # make sure that we dont send the boss spawn message twice
             if wait_time > 0:
-                await next_boss_spawns_message()
+                await next_boss_spawns_message(send_message_channel=send_message_channel)
 
 
     def test_user_perms(user: discord.User):
@@ -310,7 +312,7 @@ try:
                     react_message = await channel.fetch_message(int(react_message_id))
                 except:
                     try:
-                        react_message = await react_message_channel.fetch_message(int(react_message_id))()
+                        react_message = await react_message_channel.fetch_message(int(react_message_id))
                     except:
                         pass
 
@@ -372,7 +374,7 @@ try:
             react_message = await channel.fetch_message(int(react_message_id))
         except:
             try:
-                react_message = await react_message_channel.fetch_message(int(react_message_id))()
+                react_message = await react_message_channel.fetch_message(int(react_message_id))
             except:
                 pass
     
