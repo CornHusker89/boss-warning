@@ -100,19 +100,19 @@ try:
 
 
         # assemble a string with the next boss spawns
-        if pun_spawn_time > 180:
+        if pun_spawn_time > 0:
             pun_time = local_time + timedelta(seconds=pun_spawn_time)
             embed.add_field(name="Punisher", value=f"at {pun_time.strftime('%H:%M')} (In {round(pun_spawn_time / 60)} Minutes)")
 
-        if deci_spawn_time > 180:
+        if deci_spawn_time > 0:
             deci_time = local_time + timedelta(seconds=deci_spawn_time)
             embed.add_field(name="X-0/Decimator", value=f"at {deci_time.strftime('%H:%M')} (In {round(deci_spawn_time / 60)} Minutes)")
 
-        if galle_spawn_time > 180:
+        if galle_spawn_time > 0:
             galle_time = local_time + timedelta(seconds=galle_spawn_time)
             embed.add_field(name="Galleon", value=f"at {galle_time.strftime('%H:%M')} (In {round(galle_spawn_time / 60)} Minutes)")
 
-        if kodi_spawn_time > 180:
+        if kodi_spawn_time > 0:
             kodi_time = local_time + timedelta(seconds=kodi_spawn_time)
             embed.add_field(name="Kodiak", value=f"at {kodi_time.strftime('%H:%M')} (In {round(kodi_spawn_time / 60)} Minutes)")
 
@@ -123,12 +123,13 @@ try:
             await channel.send(embed=embed)
 
 
-    async def warn_boss_spawn(time_until_ping: int, boss_name: str, reminder_id: int, send_message_channel: discord.TextChannel):
+    async def warn_boss_spawn(time_until_ping: int, boss_name: str, reminder_id: int, send_message_channel: discord.TextChannel) -> None:
         """
         Set up a timer to ping users before boss spawn
         """
         wait_time = time_until_ping - 180
         if wait_time < 0:
+            if wait_time < -300: return
             wait_time = 0
         await asyncio.sleep(wait_time)
         
@@ -173,7 +174,7 @@ try:
 
 
                 # send a message with the next boss spawns. pass the interaction so that the message is sent as a followup
-                await next_boss_spawns_message(interaction = interaction)
+                await next_boss_spawns_message(interaction=interaction)
 
 
                 # see if we need to resend any react messages
@@ -228,10 +229,6 @@ try:
                     asyncio.ensure_future(warn_boss_spawn(time_until_ping=kodi_spawn_time, boss_name="Kodiak", reminder_id=current_reminder_id + 3, send_message_channel=interaction.channel))
                     current_reminder_id += 4
 
-
-
-
-
             except Exception as e:
                 print(e)
                 await interaction.followup.send("`An error occurred`", ephemeral=True)
@@ -240,6 +237,29 @@ try:
         # if they didnt pass the permission check to execute the command  
         else:
             await interaction.followup.send("You do not have permission to execute this command", ephemeral=True)   
+
+
+
+    @command_tree.command(name = "show-boss-spawns", description = "Displays the next boss spawn time", guild=guild_discord_object) 
+    async def resend_react_message(interaction: discord.Interaction):
+
+        # tell discord that the bot recieved the command but is "thinking"
+        await interaction.response.defer()
+
+        if test_user_perms(interaction.user):
+            try:
+
+                global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time
+                if pun_spawn_time > 0 or deci_spawn_time > 0 or galle_spawn_time > 0 or kodi_spawn_time > 0:
+                    await next_boss_spawns_message(interaction=interaction)                
+
+            except Exception as e:
+                print(e)
+                await interaction.followup.send("`An error occurred`", ephemeral=True)
+
+        # if they didnt pass the permission check to execute the command  
+        else:
+            await interaction.followup.send("You do not have permission to execute this command", ephemeral=True)
 
 
 
