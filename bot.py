@@ -78,6 +78,8 @@ try:
     galle_spawn_time = -1
     kodi_spawn_time = -1
 
+    last_used_boss_time: datetime.datetime = None
+
     remind_users_id_list = []
 
     # dont do any reminders at or under this id number
@@ -115,6 +117,8 @@ try:
         if kodi_spawn_time > 0:
             kodi_time = local_time + timedelta(seconds=kodi_spawn_time)
             embed.add_field(name="Kodiak", value=f"at {kodi_time.strftime('%H:%M')} (In {round(kodi_spawn_time / 60)} Minutes)")
+
+        embed.set_footer(text=f"times were calcuated at {last_used_boss_time.strftime('%H:%M')} ({round((local_time - last_used_boss_time).total_seconds() / 60)} Minutes ago)")
 
         # if there was a passed interaction, send the message as a followup. otherwise, send standalone message
         if interaction != None:
@@ -168,12 +172,13 @@ try:
                 round_length *= 60 # convert seconds to minutes
 
                 # calculate seconds until each boss spawns
-                global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time
+                global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time, last_used_boss_time
                 pun_spawn_time = 1698 - (round_length % 1698)
                 deci_spawn_time = 3600 - (round_length % 3600)
                 galle_spawn_time = 4200 - (round_length % 4200)
                 kodi_spawn_time = 7200 - (round_length % 7200)
 
+                last_used_boss_time = datetime.datetime.now()
 
                 # send a message with the next boss spawns. pass the interaction so that the message is sent as a followup
                 await next_boss_spawns_message(interaction=interaction)
@@ -253,7 +258,9 @@ try:
 
                 global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time
                 if pun_spawn_time > 0 or deci_spawn_time > 0 or galle_spawn_time > 0 or kodi_spawn_time > 0:
-                    await next_boss_spawns_message(interaction=interaction)                
+                    await next_boss_spawns_message(interaction=interaction)
+                else:
+                    await interaction.followup.send("Use `/boss-warn` to set the boss spawn times, then use this command again to see the next boss spawns", ephemeral=True)     
 
             except Exception as e:
                 print(e)
@@ -274,7 +281,37 @@ try:
         if test_user_perms(interaction.user):
             try:
 
-                global cancel_reminder_id
+                # attempt to retrieve the react for roles message from the channel
+                try:
+                    react_message = await channel.fetch_message(int(react_message_id))
+
+                    # remove the react roles from those who reacted to the message
+                    for reaction_type in react_message.reactions:
+                        async for user in reaction_type.users():
+                            await user.remove_roles(ping_role)
+
+                    await react_message.delete()
+
+                except:
+                    try:
+                        react_message = await react_message_channel.fetch_message(int(react_message_id))
+
+                        # remove the react roles from those who reacted to the message
+                        for reaction_type in react_message.reactions:
+                            async for user in reaction_type.users():
+                                await user.remove_roles(ping_role)
+
+                        await react_message.delete()
+                    except:
+                        pass
+
+                global cancel_reminder_id, pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time
+
+                pun_spawn_time = 0
+                deci_spawn_time = 0
+                galle_spawn_time = 0
+                kodi_spawn_time = 0
+
                 cancel_reminder_id = current_reminder_id - 1
                 await interaction.followup.send("All previous reminders have been cancelled.")
 
@@ -313,7 +350,7 @@ try:
                 except:
                     try:
                         react_message = await react_message_channel.fetch_message(int(react_message_id))
-                    except:
+                    except: 
                         pass
 
                 try:
@@ -321,12 +358,9 @@ try:
                     found_users_ids = []
 
                     if react_message:
-                        print("Refreshing user list")
                         for reaction_type in react_message.reactions:
                             async for user in reaction_type.users():
                                 found_users_ids.append(user.id)
-
-                        print(found_users_ids)
 
                         for user_id in found_users_ids:
                             if user_id not in remind_users_id_list:
@@ -344,11 +378,9 @@ try:
 
                         remind_users_id_list = found_users_ids
 
-                    else:
-                        print(react_message)
-
                 except Exception as e:
-                    traceback.print_exc()
+                    #traceback.print_exc()
+                    pass
 
 
 
