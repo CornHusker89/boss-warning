@@ -100,6 +100,7 @@ try:
 
         embed = discord.Embed(title="Boss Warning")
 
+        double_message_flag = False
 
         # assemble a string with the next boss spawns
         if pun_spawn_time > 0:
@@ -117,6 +118,8 @@ try:
         if kodi_spawn_time > 0:
             kodi_time = local_time + timedelta(seconds=kodi_spawn_time)
             embed.add_field(name="Kodiak", value=f"at {kodi_time.strftime('%H:%M')} (In {round(kodi_spawn_time / 60)} Minutes)")
+            if deci_spawn_time > -20 and deci_spawn_time < 20:
+                double_message_flag = True
 
         embed.set_footer(text=f"times were calcuated at {last_used_boss_time.strftime('%H:%M')} ({round((local_time - last_used_boss_time).total_seconds() / 60)} Minutes ago)")
 
@@ -126,7 +129,8 @@ try:
         elif channel != None:
             await send_message_channel.send(embed=embed)
         else:
-            await channel.send(embed=embed)
+            if not double_message_flag:
+                await channel.send(embed=embed)
 
 
     async def warn_boss_spawn(time_until_ping: int, boss_name: str, reminder_id: int, send_message_channel: discord.TextChannel) -> None:
@@ -231,7 +235,7 @@ try:
                 if remind:
                     global current_reminder_id
                     asyncio.ensure_future(warn_boss_spawn(time_until_ping=pun_spawn_time, boss_name="Punisher", reminder_id=current_reminder_id, send_message_channel=interaction.channel))
-                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=deci_spawn_time, boss_name=r"X-0, 45% chance of Decimator", reminder_id=current_reminder_id + 1, send_message_channel=interaction.channel))
+                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=deci_spawn_time, boss_name=r"Decimator, 45% chance of X-0", reminder_id=current_reminder_id + 1, send_message_channel=interaction.channel))
                     asyncio.ensure_future(warn_boss_spawn(time_until_ping=galle_spawn_time, boss_name="Galleon", reminder_id=current_reminder_id + 2, send_message_channel=interaction.channel))
                     asyncio.ensure_future(warn_boss_spawn(time_until_ping=kodi_spawn_time, boss_name="Kodiak", reminder_id=current_reminder_id + 3, send_message_channel=interaction.channel))
                     current_reminder_id += 4
