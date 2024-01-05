@@ -7,7 +7,7 @@ try:
     import os
     import asyncio
     import datetime
-    from datetime import timedelta
+    from datetime import datetime, timedelta
     import json
 
 
@@ -73,12 +73,14 @@ try:
     ping_role: discord.Role = None
     react_message: discord.Message = None
 
-    pun_spawn_time = -1
-    deci_spawn_time = -1
-    galle_spawn_time = -1
-    kodi_spawn_time = -1
+    message_queue = []
 
-    last_used_boss_time: datetime.datetime = None
+    pun_spawn_time: datetime = None
+    deci_spawn_time: datetime = None
+    galle_spawn_time: datetime = None
+    kodi_spawn_time: datetime = None
+
+    last_used_boss_time: datetime = None
 
     remind_users_id_list = []
 
@@ -94,34 +96,21 @@ try:
         Sends a message with the next boss spawns that are still being tracked
         """
         # calculate seconds until each boss spawns
-
-        # get the current time
-        local_time = datetime.datetime.now()
+        current_time = datetime.now()
 
         embed = discord.Embed(title="Boss Warning")
 
         double_message_flag = False
 
-        # assemble a string with the next boss spawns
-        if pun_spawn_time > 0:
-            pun_time = local_time + timedelta(seconds=pun_spawn_time)
-            embed.add_field(name="Punisher", value=f"at {pun_time.strftime('%H:%M')} (In {round(pun_spawn_time / 60)} Minutes)")
+        global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time, last_used_boss_time
 
-        if deci_spawn_time > 0:
-            deci_time = local_time + timedelta(seconds=deci_spawn_time)
-            embed.add_field(name="X-0/Decimator", value=f"at {deci_time.strftime('%H:%M')} (In {round(deci_spawn_time / 60)} Minutes)")
+        # assemble strings with the next boss spawns
+        embed.add_field(name="Punisher", value=f"at {pun_spawn_time.strftime('%H:%M')} (In {round((pun_spawn_time - current_time).total_seconds() / 60)} Minutes)")
+        embed.add_field(name="X-0/Decimator", value=f"at {deci_spawn_time.strftime('%H:%M')} (In {round((deci_spawn_time - current_time).total_seconds() / 60)} Minutes)")
+        embed.add_field(name="Galleon", value=f"at {galle_spawn_time.strftime('%H:%M')} (In {round((galle_spawn_time - current_time).total_seconds() / 60)} Minutes)")
+        embed.add_field(name="Kodiak", value=f"at {kodi_spawn_time.strftime('%H:%M')} (In {round((kodi_spawn_time - current_time).total_seconds() / 60)} Minutes)")
 
-        if galle_spawn_time > 0:
-            galle_time = local_time + timedelta(seconds=galle_spawn_time)
-            embed.add_field(name="Galleon", value=f"at {galle_time.strftime('%H:%M')} (In {round(galle_spawn_time / 60)} Minutes)")
-
-        if kodi_spawn_time > 0:
-            kodi_time = local_time + timedelta(seconds=kodi_spawn_time)
-            embed.add_field(name="Kodiak", value=f"at {kodi_time.strftime('%H:%M')} (In {round(kodi_spawn_time / 60)} Minutes)")
-            if deci_spawn_time > -20 and deci_spawn_time < 20:
-                double_message_flag = True
-
-        embed.set_footer(text=f"times were calcuated at {last_used_boss_time.strftime('%H:%M')} ({round((local_time - last_used_boss_time).total_seconds() / 60)} Minutes ago)")
+        embed.set_footer(text=f"Times were calcuated at {last_used_boss_time.strftime('%H:%M')} ({round((current_time - last_used_boss_time).total_seconds() / 60)} Minutes ago)")
 
         # if there was a passed interaction, send the message as a followup. otherwise, send standalone message
         if interaction != None:
@@ -131,25 +120,6 @@ try:
         else:
             if not double_message_flag:
                 await channel.send(embed=embed)
-
-
-    async def warn_boss_spawn(time_until_ping: int, boss_name: str, reminder_id: int, send_message_channel: discord.TextChannel) -> None:
-        """
-        Set up a timer to ping users before boss spawn
-        """
-        wait_time = time_until_ping - 180
-        if wait_time < 0:
-            if wait_time < -300: return
-            wait_time = 0
-        await asyncio.sleep(wait_time)
-        
-        if reminder_id > cancel_reminder_id:
-            # send the message
-            await send_message_channel.send(f"{ping_role.mention}\n{boss_name} is spawning in 3 minutes")
-
-            # make sure that we dont send the boss spawn message twice
-            if wait_time > 0:
-                await next_boss_spawns_message(send_message_channel=send_message_channel)
 
 
     def test_user_perms(user: discord.User):
@@ -176,13 +146,26 @@ try:
                 round_length *= 60 # convert seconds to minutes
 
                 # calculate seconds until each boss spawns
-                global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time, last_used_boss_time
-                pun_spawn_time = 1698 - (round_length % 1698)
-                deci_spawn_time = 3600 - (round_length % 3600)
-                galle_spawn_time = 4200 - (round_length % 4200)
-                kodi_spawn_time = 7200 - (round_length % 7200)
+                global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time, last_used_boss_time, message_queue
 
-                last_used_boss_time = datetime.datetime.now()
+                # reset the message queue
+                message_queue = []
+
+                pun_spawn_delta_time = timedelta(seconds=1698 - (round_length % 1698)) 
+                deci_spawn_delta_time = timedelta(seconds=3600 - (round_length % 3600))
+                galle_spawn_delta_time = timedelta(seconds=4200 - (round_length % 4200))
+                kodi_spawn_delta_time = timedelta(seconds=7200 - (round_length % 7200))
+
+                # get the current time
+                current_time = datetime.now()
+
+                # make a datetime for when each boss spawns
+                pun_spawn_time = current_time + pun_spawn_delta_time
+                deci_spawn_time = current_time + deci_spawn_delta_time
+                galle_spawn_time = current_time + galle_spawn_delta_time
+                kodi_spawn_time = current_time + kodi_spawn_delta_time
+
+                last_used_boss_time = datetime.now()
 
                 # send a message with the next boss spawns. pass the interaction so that the message is sent as a followup
                 await next_boss_spawns_message(interaction=interaction)
@@ -231,13 +214,22 @@ try:
                         json.dump({"react_message_id": react_message_id, "react_message_channel_id": react_message_channel_id }, file)
 
 
-                # start timers to ping users before each boss spawns, if remind is true
+                # add remind messages to message queue, if remind is true
                 if remind:
                     global current_reminder_id
-                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=pun_spawn_time, boss_name="Punisher", reminder_id=current_reminder_id, send_message_channel=interaction.channel))
-                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=deci_spawn_time, boss_name=r"Decimator, 45% chance of X-0", reminder_id=current_reminder_id + 1, send_message_channel=interaction.channel))
-                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=galle_spawn_time, boss_name="Galleon", reminder_id=current_reminder_id + 2, send_message_channel=interaction.channel))
-                    asyncio.ensure_future(warn_boss_spawn(time_until_ping=kodi_spawn_time, boss_name="Kodiak", reminder_id=current_reminder_id + 3, send_message_channel=interaction.channel))
+
+                    # message object structure: [ping datetime, boss name, reminder_id, channel, boss spawn interval]
+                    
+                    pun_message_object = [pun_spawn_time, "Punisher", current_reminder_id, interaction.channel, 1698]
+                    deci_message_object = [deci_spawn_time, r"Decimator, 45% chance of X-0", current_reminder_id + 1, interaction.channel, 3600]
+                    galle_message_object = [galle_spawn_time, "Galleon", current_reminder_id + 2, interaction.channel, 4200]
+                    kodi_message_object = [kodi_spawn_time, "Kodiak", current_reminder_id + 3, interaction.channel, 7200]
+
+                    message_queue.append(pun_message_object)
+                    message_queue.append(deci_message_object)
+                    message_queue.append(galle_message_object)
+                    message_queue.append(kodi_message_object)
+
                     current_reminder_id += 4
 
             except Exception as e:
@@ -260,8 +252,8 @@ try:
         if test_user_perms(interaction.user):
             try:
 
-                global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time
-                if pun_spawn_time > 0 or deci_spawn_time > 0 or galle_spawn_time > 0 or kodi_spawn_time > 0:
+                global last_used_boss_time
+                if last_used_boss_time != None:
                     await next_boss_spawns_message(interaction=interaction)
                 else:
                     await interaction.followup.send("Use `/boss-warn` to set the boss spawn times, then use this command again to see the next boss spawns", ephemeral=True)     
@@ -309,12 +301,7 @@ try:
                     except:
                         pass
 
-                global cancel_reminder_id, pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time
-
-                pun_spawn_time = 0
-                deci_spawn_time = 0
-                galle_spawn_time = 0
-                kodi_spawn_time = 0
+                global cancel_reminder_id
 
                 cancel_reminder_id = current_reminder_id - 1
                 await interaction.followup.send("All previous reminders have been cancelled.")
@@ -330,22 +317,49 @@ try:
 
 
     async def start_timer():
-        """
-        Start the timer that decrements the time until each boss spawns
-        """
         timecount = 0
         while True:
-            await asyncio.sleep(0.99) # attempt to account for the time it takes to run the code
+            await asyncio.sleep(1) # make sure that the program doesnt use 100% cpu lmao
             # decrement the time until each boss spawns by 1 every second
             global pun_spawn_time, deci_spawn_time, galle_spawn_time, kodi_spawn_time, remind_users_id_list, react_message, react_message_id, react_message_channel_id, react_message_channel
 
-            pun_spawn_time = pun_spawn_time - 1
-            deci_spawn_time = deci_spawn_time - 1
-            galle_spawn_time = galle_spawn_time - 1
-            kodi_spawn_time = kodi_spawn_time - 1
+            # get the current time and add 3 minutes to it, so that we can ping the role 3 minutes before the boss spawns
+            current_time = datetime.now() + timedelta(seconds=180)
+
+            # message object structure: [ping datetime, boss name, reminder_id, channel, boss spawn interval]
+
+            send_messsage_object = None
+
+            for message_object in message_queue:
+                if message_object[0] < current_time:
+
+                    if message_object[2] > cancel_reminder_id:
+                        
+                        if send_messsage_object == None:
+                            send_messsage_object = message_object
+                        else:
+                            send_messsage_object[1] = send_messsage_object[1] + f", {message_object[1]}"
+
+                    message_queue.remove(message_object)
+
+                    # add the message back to the queue with the new ping time
+                    message_queue.append([message_object[0] + timedelta(seconds=message_object[4]), message_object[1], message_object[2], message_object[3], message_object[4]])
+
+                    if message_object[4] == 1698:
+                        pun_spawn_time = pun_spawn_time + timedelta(seconds=1698)
+                    elif message_object[4] == 3600:
+                        deci_spawn_time = deci_spawn_time + timedelta(seconds=3600)
+                    elif message_object[4] == 4200:
+                        galle_spawn_time = galle_spawn_time + timedelta(seconds=4200)
+                    elif message_object[4] == 7200:
+                        kodi_spawn_time = kodi_spawn_time + timedelta(seconds=7200)
+
+            if send_messsage_object != None:
+                # send the message
+                await send_messsage_object[3].send(f"{ping_role.mention}\n{send_messsage_object[1]} is spawning in 3 minutes")
 
             timecount = timecount + 1
-            if timecount > 5:
+            if timecount > 6:
                 timecount = 0
 
                 # attempt to retrieve the react for roles message from the channel
@@ -358,7 +372,7 @@ try:
                         pass
 
                 try:
-                    # refresh the user list every 20 seconds
+                    # refresh the user list every 6 seconds
                     found_users_ids = []
 
                     if react_message:
