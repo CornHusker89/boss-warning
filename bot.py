@@ -15,11 +15,6 @@ try:
 
     from dotenv import load_dotenv
     load_dotenv()
-
-
-    # set to false if you want everyone to be able to use the commands
-    require_command_permission = True
-
     
 
     # you could also just replace os.getenv('BOT_TOKEN') with the actual token if you dont want to use a .env file
@@ -34,7 +29,8 @@ try:
     permission_role_id = os.getenv('PERMISSION_ROLE_ID')
     # aero's user id (for the perms)
     aero_id = os.getenv('AERO_ID')
-
+    # whether PERMISSION_ROLE_ID is required
+    require_command_permission = os.getenv('REQUIRE_PERMISSION')
 
     # get the react for roles message from the json file
     with open('react_message_id.json') as file:
